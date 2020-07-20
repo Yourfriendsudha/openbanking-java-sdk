@@ -2,10 +2,14 @@ package com.bankofapis.web.service;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Hashtable;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
@@ -34,6 +38,8 @@ import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 
+import ch.qos.logback.core.net.SyslogOutputStream;
+
 @Service
 public class QRService {
 	
@@ -43,15 +49,20 @@ public class QRService {
 	@Autowired
 	private ResourceLoader resourceLoader;
 	
+	private static FileWriter file;
 	
 	public String generateQR(chequeRequest chqrequest) throws WriterException, IOException {
-		String qcodePath = "src/main/resources/qrimages/" + chqrequest.getBeneName()+ chqrequest.hashCode() +"-QRCode.png";
+		String chequename=chqrequest.getBeneName()+ chqrequest.hashCode();
+		String genpath="src/main/resources/qrimages/generated/"+chqrequest.getPayeeName()+"/";
+
+		Files.createDirectories(Paths.get(genpath));
+		String qcodePath =  genpath + chequename +"-QRCode.png";
+		
 		QRCodeWriter qrCodeWriter = new QRCodeWriter();
 		 Gson gson = new Gson();
 		 String amtTxt = chequeUtil.convertToAmountText(chqrequest.getChequeAmount());
 		 chqrequest.setChequeAmountText(amtTxt);
 		String json = gson.toJson(chqrequest);
-		System.out.println(chqrequest.toString());
 		Hashtable hints = new Hashtable();
         hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
         hints.put(EncodeHintType.CHARACTER_SET, "utf-8");
@@ -60,13 +71,15 @@ public class QRService {
 				json, BarcodeFormat.QR_CODE, 300, 300 , hints );
 		Path path = FileSystems.getDefault().getPath(qcodePath);
 		MatrixToImageWriter.writeToPath(bitMatrix, "PNG", path);
-			
+		file = new FileWriter(genpath+chequename+".txt");
+				file.write(json.toString());
+				file.close();
 		return "/qrimages/" + chqrequest.getBeneName()+chqrequest.hashCode() + "-QRCode.png";
 	}
 	
 	
-	public JSONObject readQR(String qrImage) throws Exception {
-		final Resource fileResource = resourceLoader.getResource("classpath:/qrimages/" + qrImage);
+	public JSONObject readQR(String qrImage, String folder) throws Exception {
+		final Resource fileResource = resourceLoader.getResource("classpath:/qrimages/"+folder+"/" + qrImage);
 		File QRfile = fileResource.getFile();
 		BufferedImage bufferedImg = ImageIO.read(QRfile);
 		LuminanceSource source = new BufferedImageLuminanceSource(bufferedImg);
@@ -78,6 +91,43 @@ public class QRService {
 		return json;
 
 	}
+
+
+	public String shareQR(String qrImage, String bene, String user) throws IOException {
+		// TODO Auto-generated method stub		
+		String genfile="src/main/resources/qrimages/generated/"+user+"/"+qrImage;
+		String sharefile="src/main/resources/qrimages/receieved/"+bene+"/"+qrImage;
+		//Files.createDirectories(Paths.get(genfile));
+		Files.createDirectories(Paths.get("src/main/resources/qrimages/receieved/"+bene+"/"));
+		Path temp = Files.move 
+		        (Paths.get(genfile),  
+		        Paths.get(sharefile)); 		  
+		        if(temp != null) 
+		        { 
+		        	System.out.println(temp);
+		            System.out.println("File moved successfully"); 
+		            return "Success";
+		        } 
+		        else
+		        { 
+		            System.out.println("Failed to move the file"); 
+		        } 
+		return "failure";
+	}
+
+
+	public JSONObject getAllGenerated(String user) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	public JSONObject getAllReceived(String user) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
 }
 	
 	

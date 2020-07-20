@@ -1,6 +1,5 @@
 package com.bankofapis.web.controller;
 
-
 import static com.bankofapis.remote.common.Endpoints.OB_JOURNEY_INIT;
 
 import java.awt.image.BufferedImage;
@@ -9,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Hashtable;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletResponse;
@@ -53,49 +53,81 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 public class QRcodecontroller {
 
 	@Autowired
-	 private QRService qrService;
-	
-	@Autowired
-	 private AispService aispService;
+	private QRService qrService;
 
-	  @GetMapping(value = OB_JOURNEY_INIT)
-	    public String initialize(HttpServletResponse response) {
-	        return aispService.initialize();
-	    }
-	
-	@RequestMapping(
-	        value = "/QRCheque",
-	        method = RequestMethod.POST,
-	        produces = { MediaType.IMAGE_JPEG_VALUE, MediaType.IMAGE_GIF_VALUE, MediaType.IMAGE_PNG_VALUE},
-	        consumes = MediaType.APPLICATION_JSON_VALUE)
-	public String createQRCheque( @RequestBody chequeRequest request)
-			throws WriterException, IOException {
+	@Autowired
+	private AispService aispService;
+
+	@GetMapping(value = OB_JOURNEY_INIT)
+	public String initialize(HttpServletResponse response) {
+		return aispService.initialize();
+	}
+
+	@RequestMapping(value = "/QRCheque", method = RequestMethod.POST, produces = { MediaType.IMAGE_JPEG_VALUE,
+			MediaType.IMAGE_GIF_VALUE, MediaType.IMAGE_PNG_VALUE }, consumes = MediaType.APPLICATION_JSON_VALUE)
+	public String createQRCheque(@RequestBody chequeRequest request) throws WriterException, IOException {
 		try {
 			qrService.generateQR(request);
 		} catch (Exception e) {
 			// TODO: handle exception
 			e.printStackTrace();
 		}
-		
-		
+
 		return "QRcode";
 	}
-	
 
+	@RequestMapping(value = "/shareQR", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = {
+			MediaType.IMAGE_PNG_VALUE, MediaType.APPLICATION_JSON_UTF8_VALUE })
+	public @ResponseBody ResponseEntity<String> shareQR(@RequestParam("bene") String bene,
+			@RequestParam("qrImage") String qrImage , @RequestParam("user") String user) throws Exception {
+		try {
+			if (null != qrImage && null != bene) {
+				String sucess = qrService.shareQR(qrImage, bene , user);
+				return new ResponseEntity<String>(sucess, HttpStatus.OK);
+			}
+
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}
+
+		return new ResponseEntity<String>("Couldn't share to the Beneficiary. Please try again", HttpStatus.NOT_FOUND);
+
+	}
+
+	@RequestMapping(value = "/getAllGenerated", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = {
+			MediaType.IMAGE_PNG_VALUE, MediaType.APPLICATION_JSON_UTF8_VALUE })
+	public @ResponseBody ResponseEntity<String> getAllGeneratedPending(@RequestParam("user") String user) throws Exception {
+		try {
+			if (null != user) {
+				JSONObject json = new JSONObject();
+				json = qrService.getAllGenerated(user);
+
+				return new ResponseEntity<String>(json.toString(), HttpStatus.OK);
+			}
+
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}
+
+		return new ResponseEntity<String>("Couldn't retrive. Please try again", HttpStatus.NOT_FOUND);
+
+	}
 
 	@RequestMapping(
-	        value = "/scanQR",
+	        value = "/getAllReceived",
 	        method = RequestMethod.GET,
 	        produces =  MediaType.APPLICATION_JSON_UTF8_VALUE,
-	        consumes = MediaType.IMAGE_PNG_VALUE)
-	public @ResponseBody  ResponseEntity<String> scanQR(@RequestParam("qrImage") String qrImage) throws Exception {
+	        consumes = {MediaType.IMAGE_PNG_VALUE , MediaType.APPLICATION_JSON_UTF8_VALUE})
+	public @ResponseBody  ResponseEntity<String> getAllReceived(@RequestParam("user") String user ) throws Exception {
 		try {
-			 if (null!=qrImage) {
-				 JSONObject json = new JSONObject();				
-				 json= qrService.readQR(qrImage);			
-				 System.out.println("jsont: " + json);
-		           return new ResponseEntity<String>(json.toString(), HttpStatus.OK);
-		        }
+			if (null != user) {
+				JSONObject json = new JSONObject();
+				json = qrService.getAllReceived(user);
+
+				return new ResponseEntity<String>(json.toString(), HttpStatus.OK);
+			}
 			
 		} catch (Exception e) {
 			// TODO: handle exception
@@ -103,10 +135,27 @@ public class QRcodecontroller {
 		}
 		
 		
+		return new ResponseEntity<String>("Couldn't retrive. Please try again", HttpStatus.NOT_FOUND);
+
+	}
+
+	@RequestMapping(value = "/submitQR", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = MediaType.IMAGE_PNG_VALUE)
+	public @ResponseBody ResponseEntity<String> scanQR(@RequestParam("qrImage") String qrImage,
+			@RequestParam("folder") String folder) throws Exception {
+		try {
+			if (null != qrImage) {
+				JSONObject json = new JSONObject();
+				json = qrService.readQR(qrImage, folder);
+				return new ResponseEntity<String>(json.toString(), HttpStatus.OK);
+			}
+
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}
+
 		return new ResponseEntity<String>("not processed", HttpStatus.NOT_FOUND);
 
 	}
-	
-
 
 }
