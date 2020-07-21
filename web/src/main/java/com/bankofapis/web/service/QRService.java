@@ -1,6 +1,7 @@
 package com.bankofapis.web.service;
 
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -10,9 +11,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +25,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
+import com.bankofapis.core.model.cheque.QRimage;
 import com.bankofapis.core.model.cheque.chequeRequest;
 import com.bankofapis.core.model.cheque.chequeUtil;
 import com.google.gson.Gson;
@@ -38,7 +43,6 @@ import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 
-import ch.qos.logback.core.net.SyslogOutputStream;
 
 @Service
 public class QRService {
@@ -51,13 +55,15 @@ public class QRService {
 	
 	private static FileWriter file;
 	
-	public String generateQR(chequeRequest chqrequest) throws WriterException, IOException {
+	public QRimage generateQR(chequeRequest chqrequest) throws WriterException, IOException {
+		QRimage img= new QRimage();
 		String chequename=chqrequest.getBeneName()+ chqrequest.hashCode();
+		img.setName(chequename);
 		String genpath="src/main/resources/qrimages/generated/"+chqrequest.getPayeeName()+"/";
 
 		Files.createDirectories(Paths.get(genpath));
 		String qcodePath =  genpath + chequename +"-QRCode.png";
-		
+		img.setType(".png");		
 		QRCodeWriter qrCodeWriter = new QRCodeWriter();
 		 Gson gson = new Gson();
 		 String amtTxt = chequeUtil.convertToAmountText(chqrequest.getChequeAmount());
@@ -66,20 +72,24 @@ public class QRService {
 		Hashtable hints = new Hashtable();
         hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
         hints.put(EncodeHintType.CHARACTER_SET, "utf-8");
-        hints.put(EncodeHintType.MARGIN, 1);
+        hints.put(EncodeHintType.MARGIN, 4);
 		BitMatrix bitMatrix = qrCodeWriter.encode(
 				json, BarcodeFormat.QR_CODE, 300, 300 , hints );
 		Path path = FileSystems.getDefault().getPath(qcodePath);
 		MatrixToImageWriter.writeToPath(bitMatrix, "PNG", path);
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        MatrixToImageWriter.writeToStream(bitMatrix, "png", bos);
 		file = new FileWriter(genpath+chequename+".txt");
 				file.write(json.toString());
 				file.close();
-		return "/qrimages/" + chqrequest.getBeneName()+chqrequest.hashCode() + "-QRCode.png";
+		img.setPicByte(bos.toByteArray());
+		return img;
+				//"/qrimages/" + chqrequest.getBeneName()+chqrequest.hashCode() + "-QRCode.png";
 	}
 	
 	
-	public JSONObject readQR(String qrImage, String folder) throws Exception {
-		final Resource fileResource = resourceLoader.getResource("classpath:/qrimages/"+folder+"/" + qrImage);
+	public JSONObject readQR(String qrImage, String folder , String user) throws Exception {
+		final Resource fileResource = resourceLoader.getResource("classpath:/qrimages/"+folder+"/"+user+"/"+ qrImage);
 		File QRfile = fileResource.getFile();
 		BufferedImage bufferedImg = ImageIO.read(QRfile);
 		LuminanceSource source = new BufferedImageLuminanceSource(bufferedImg);
@@ -116,15 +126,40 @@ public class QRService {
 	}
 
 
-	public JSONObject getAllGenerated(String user) {
-		// TODO Auto-generated method stub
-		return null;
+	public JSONObject getAllGenerated(String user) throws JSONException {
+		String sharePath="src/main/resources/qrimages/generated/"+user+"/";
+		JSONObject json = new JSONObject();
+		 try (Stream<Path> walk = Files.walk(Paths.get(sharePath))) {
+	            List<String> result = walk.filter(Files::isRegularFile)
+	                    .map(x -> x.toString()).collect(Collectors.toList());
+
+	            result.forEach(System.out::println);
+	            json.put("QrCheques Pending", result);
+	            return json;
+	        } catch (IOException e) {
+	            e.printStackTrace();
+	        }
+		 
+		 return new JSONObject("no cheques found to deposit");
 	}
 
 
-	public JSONObject getAllReceived(String user) {
-		// TODO Auto-generated method stub
-		return null;
+	public JSONObject getAllReceived(String user) throws JSONException {
+
+		String sharePath="src/main/resources/qrimages/receieved/"+user+"/";
+		JSONObject json = new JSONObject();
+		 try (Stream<Path> walk = Files.walk(Paths.get(sharePath))) {
+	            List<String> result = walk.filter(Files::isRegularFile)
+	                    .map(x -> x.toString()).collect(Collectors.toList());
+
+	            result.forEach(System.out::println);
+	            json.put("QrCheques Recieved", result);
+	            return json;
+	        } catch (IOException e) {
+	            e.printStackTrace();
+	        }
+		 
+		 return new JSONObject("no cheques found to deposit");
 	}
 
 
