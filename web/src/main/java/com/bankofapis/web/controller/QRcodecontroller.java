@@ -77,8 +77,9 @@ public class QRcodecontroller {
 		return new ResponseEntity<QRimage>(image, HttpStatus.OK);
 	}
 
-	@RequestMapping(value = "/shareQR", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = {
-			MediaType.IMAGE_PNG_VALUE, MediaType.APPLICATION_JSON_UTF8_VALUE })
+//	@RequestMapping(value = "/shareQR", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE, consumes = {
+//			MediaType.APPLICATION_JSON })
+	@GetMapping(value = "/shareQR")
 	public @ResponseBody ResponseEntity<String> shareQR(@RequestParam("bene") String bene,
 			@RequestParam("qrImage") String qrImage, @RequestParam("user") String user) throws Exception {
 		try {
