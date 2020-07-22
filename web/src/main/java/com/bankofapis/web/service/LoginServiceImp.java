@@ -51,15 +51,15 @@ public class LoginServiceImp  implements LoginService {
 		 try {
 		       loginPerson = loginDao.selectPersonByEmail(email); }
 		 catch (Exception e) {
-			 return 1;
+			 return 0;
 		 }
 		 
 		
 		 if( (loginPerson.getEmail().equals(email)) && (loginPerson.getPassword().equals(password))) {
-			 return 0; //successful
+			 return 1; //successful
 		 }
 		 else {
-			 return 1;
+			 return 0;
 		 }	 
 	 }
 

@@ -44,7 +44,7 @@ public class LoginController {
 	public ResponseEntity<Integer> getPersonel(@RequestBody PersonRequest personRequest){
 		
 		if (personRequest.getEmail().equals(null)||personRequest.getPassword().equals(null)) {
-			 return ResponseEntity.ok(1);
+			 return ResponseEntity.ok(0);
 		 }
 		try {
 		    int personels=loginService.authenticate(personRequest.getEmail(),personRequest.getPassword() );
