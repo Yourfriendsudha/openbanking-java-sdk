@@ -3,7 +3,8 @@ Goal
     The Goal of the Project is to transition ourselves from paper Cheque Books to Digital Cheque Books.
 
     The project main idea is to create QR code containg Payment Instruction instead of paper cheques. 
-Thereby eliminating physical activites on depositing cheques in bank/ handing over cheque to concerned parties.
+    
+    Thereby eliminating physical activites on depositing cheques in bank/ handing over cheque to concerned parties.
  
  ![](system-diagram.png)
 
