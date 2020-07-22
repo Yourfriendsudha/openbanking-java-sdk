@@ -116,9 +116,9 @@ openbanking-java-sdk-example/postmancollection/GreenCheque APP.postman_collectio
 
 ## Dependencies of Microservice
 
-   Added below dependencies in POM file
+   Added below dependencies in POM file(Open source)
 
-  <dependency>
+    <dependency>
         <groupId>com.google.zxing</groupId>
         <artifactId>core</artifactId>
         <version>3.3.0</version>
